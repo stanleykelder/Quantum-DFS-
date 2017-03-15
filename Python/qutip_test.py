@@ -37,15 +37,24 @@ def E(k, dt):
 	if k == 0:
 		return E0 
 
-print(E(1, 0.1))
-print(E(1, 0.1)**2)
+# print(E(1, 0.1))
+# print(E(1, 0.1)**2)
 
-# print(E(1, 0.1) * E(1, 0.1))
+def rho_0(spin):
+	return .5 * (tensor((ket(spin) * bra(spin)), (ket(spin) * bra(spin)), identity(2)))
 
-# print((E(1, 0.1) ** 2) / 2)
-# print((E(2, 0.1) ** 2) / 2)
+def epsilon(spin, dt):
+	epsilon = (E(0, dt) * rho_0(spin) * E(0, dt).dag() +
+			   E(1, dt) * rho_0(spin) * E(1, dt).dag() +
+			   E(2, dt) * rho_0(spin) * E(2, dt).dag())		
+	return epsilon
 
-# print(E(0, 0.1))
+PartTrace = (epsilon(0, 0.4) * rho_0(0)).ptrace(2)
+rho_1 = ket(0) * bra(0)
+
+print(rho_0(0))
+print((rho_1 * PartTrace).tr())
+
 
 
 # eind = time.time()
