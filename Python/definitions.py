@@ -1,9 +1,10 @@
+from __future__ import division
 import numpy as np
 import time
 from qutip import *
-import scipy.sparse as sp
 
 start = time.time()
+
 
 # Takes 0 or 1 as input, returns corresponding bra
 def bra(spin):
@@ -52,41 +53,66 @@ def rho_0(spin):
 	return .5 * (tensor((ket(spin) * bra(spin)), identity(2)))
 
 # 
-def epsilon(spin, dt):
-	epsilon = (E(0, dt) * direct_sum(rho_0(spin), 4) * E(0, dt).dag() +
-			   E(1, dt) * direct_sum(rho_0(spin), 4) * E(1, dt).dag() +
-			   E(2, dt) * direct_sum(rho_0(spin), 4) * E(2, dt).dag())		
+def ancillary():
+	return tensor(rho_1(0), rho_1(0))
+
+# EDIT
+def error(M, dt):
+	epsilon = (E(0, dt) * M * E(0, dt).dag() +
+			   E(1, dt) * M * E(1, dt).dag() +
+			   E(2, dt) * M * E(2, dt).dag())		
 	return epsilon
 
 ##########################################################################
 # Use numpy to calculate direct sum. input qutip matrix and n3. Returns 
-def direct_sum(rho, n3):
-	zero = np.zeros([n3, n3])
-	rho = rho.full()
-
-	rho_encoded = np.zeros(np.add(rho.shape,zero.shape))
-	rho_encoded[:rho.shape[0], :rho.shape[1]] = rho
-	rho_encoded[rho.shape[0]:, rho.shape[1]:] = zero
-	return Qobj(rho_encoded, [[2, 2, 2], [2, 2, 2]])
+def rho_system(rho):
+	ancillary = tensor(rho_1(0), rho_1(0))
+	return tensor(rho, ancillary)
 ###########################################################################
 
-def projection(M):
-	return Qobj(M[:4, :4], [[2, 2], [2, 2]])
+# def toprojection(M):
+# 	return Qobj(M[:4, :4], [[2, 2], [2, 2]])
 
-# def encode(U, M):
+def encode(U, M):
+	return(U * M * U.dag())
+
+def decode(U, M):
+	return(U.dag() * M * U)
+
+def fidelity(rho, M):
+	return((rho * M).tr())
 
 
-# def Fidelity():
-# 	return()
+# Calculate the Gell-Mann matrices for n dimensions. Returns a lis of all matrices
+def Gell_Mann(n):
+	gellmann = []
+	gellmann.append(Qobj(1 / (np.sqrt(n)) * identity(n), [[2, 2], [2, 2]]))
+	for k in range (1, n):
+		A = np.zeros((n, n), dtype=np.complex)
+		for j in range (0, n):
+			M = np.zeros((n, n), dtype=np.complex)
+			if j < k:	
+				M[k][j] = 1 / (np.sqrt(2))
+				M[j][k] = 1 / (np.sqrt(2))
+				gellmann.append(Qobj(M, [[2, 2], [2, 2]]))
+				M[k][j] = 1j / (np.sqrt(2))
+				M[j][k] = -1j / (np.sqrt(2))
+				gellmann.append(Qobj(M, [[2, 2], [2, 2]]))
+				A[j][j] =  np.sqrt(1 / (k * (k + 1)))
+		A[k][k] =  -k * np.sqrt(1 / (k * (k + 1)))
+		gellmann.append(Qobj(A, [[2, 2], [2, 2]]))
+
+	return gellmann
 
 
+# def E'(k, ):
 
-Epsilon = epsilon(0, 0.04)
-Projection = projection(Epsilon)
-Ptrace = Projection.ptrace(0)
-Fidelity = (Projection.ptrace(0) * rho_1(0)).tr()
+print(Gell_Mann(4)[3])
 
-print (rho_1(0))
+for i in range(0,16):
+	for j in range(0, 16):
+		if i == j:
+			print i, j, ancillary() * Gell_Mann(4)[i] * Gell_Mann(4)[j] * ancillary()
+
 
 eind = time.time()
-print(eind-start)
